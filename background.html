@@ -1,0 +1,234 @@
+<script src="jquery-1.6.1.min.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+
+var isconnected;
+var notificationCaptcha;
+var captchaData = {"captcha":false};
+var directMenu;
+var packageMenu;
+var animate=-99;
+
+function connected() {
+   isconnected=true;
+   chrome.contextMenus.removeAll();
+   packageMenu = chrome.contextMenus.create({"contexts":["selection"],"title":"New package","onclick": remotePopup});
+   directMenu = chrome.contextMenus.create({"contexts":["selection"],"title":"Direct package","onclick": remotePopup});
+   chrome.browserAction.setIcon({"path":"images/logo19.png"});
+   chrome.browserAction.setTitle({"title":"pyLoad - Connected"});
+   chrome.browserAction.onClicked.removeListener(connectPyLoad2);
+}
+
+function disconnected() {
+   isconnected=false;
+   animate=-99;
+   chrome.contextMenus.removeAll();
+   chrome.browserAction.setIcon({"path":"images/logo19d.png"});
+   chrome.browserAction.setTitle({"title":"pyLoad - Not connected"});
+   chrome.browserAction.onClicked.addListener(connectPyLoad2);
+}
+
+function showFrame() {
+   chrome.browserAction.setIcon({"path":"images/logo16r"+animate+".png"});
+   animate++;
+   if (animate > 23) animate = 0;
+   if (animate >= 0) setTimeout("showFrame();",150);
+   else chrome.browserAction.setIcon({"path":"images/logo19.png"});
+}
+
+function startAnimate() {
+   animate=0;
+   showFrame();
+}
+
+function connectPyLoad(callback) {
+    $.ajax({ "url": window.localStorage["pyloadUrl"]+"/login",
+             "type": "POST",
+             "data": ({"username": window.localStorage["pyloadUser"],
+                       "password": window.localStorage["pyloadPass"]}),
+             "datatype": "html",
+             "success" : function (msg) { if (msg.indexOf('<input type="submit" value="Login"') >=0) 
+                                          { disconnected();
+                                            if (callback) callback("bad"); 
+                                          } else {
+                                            connected();
+                                            if (callback) callback("ok");
+                                          }},
+             "error" : function () { if (callback) callback("fail");}
+    });
+}
+
+function connectPyLoad2() {
+  connectPyLoad();
+}
+
+
+function getDate() {
+ 
+  function twoDigits(num) {
+   if (num < 10) {
+      return "0"+num;
+   }
+   return ""+num;
+  }
+
+  var result="";
+  var d=new Date();
+  result = result + d.getFullYear() + "-" + twoDigits(d.getDate()) + "-" + twoDigits(d.getMonth()+1) + " ";
+  result = result + twoDigits(d.getHours()+1) + "-" + twoDigits(d.getMinutes()+1) + "-" + twoDigits(d.getSeconds()+1);
+  return result;
+}
+
+function remotePopup(info, tab) {
+
+  var addbox=$("#addbox").html();
+  var type;
+  var name="";
+  if (info.menuItemId == directMenu) {
+      type="direct";
+      switch (parseInt(window.localStorage["pyloadName"])) {
+          case 1:   var matches=info.pageUrl.match(/.*?:\/\/(.*?)\//);
+                    name=matches[0];
+                    break;
+          case 2:   name=window.localStorage["pyloadPackName"];
+                    break;
+      }
+      switch (parseInt(window.localStorage["pyloadSuffix"])) {
+          case 1:   break;
+          case 2:   name = name + " " +getDate();
+                    break;
+          case 3:   name = name + " " +window.localStorage["pyloadPackCount"];
+                    window.localStorage["pyloadPackCount"] = parseInt(window.localStorage["pyloadPackCount"])+1;
+                    break;
+      }
+
+  } else {
+      type = "new";
+  }
+  chrome.tabs.sendRequest(tab.id, {"type":type,"addBox":addbox,"name":name});
+}
+
+function addPackage(request) {
+    $.ajax({ "url": window.localStorage["pyloadUrl"]+"/json/add_package",
+             "type": "POST",
+             "data": (request),
+             "datatype": "json",
+             "error" : function () { disconnected(); alert("failed submitting package to pyLoad, disconnecting.");}
+    });
+}
+
+
+function replyCaptcha(data, callback) {
+    $.ajax({ "url": window.localStorage["pyloadUrl"]+"/json/set_captcha",
+             "type": "POST",
+             "data": ({"cap_id":data.id, "cap_result": data.text, "cap_text": data.text}), // changed on server end so send as both
+             "datatype": "json",
+             "success": function(result) {if (!result.captcha) captchaStatus(false); callback(result);},
+             "error" : function () { disconnected(); alert("failed sending captcha result, disconnecting.");}
+    });
+}
+
+function getCaptcha(callback) {
+    $.ajax({ "url": window.localStorage["pyloadUrl"]+"/json/set_captcha",
+             "type": "GET",
+             "datatype": "json",
+             "success": function(result) {if (!result.captcha) captchaStatus(false); callback(result);},
+             "error" : function () { disconnected(); alert("failed getting captcha, disconnecting.");}
+    });
+}
+
+function captchaStatus(status) {
+     if (! status) {
+        animate=-99;
+        chrome.browserAction.setPopup({"popup":""});
+        if (notificationCaptcha) {
+           notificationCaptcha.cancel();
+           notificationCaptcha = null;
+        }
+        return;
+     }
+     if (parseInt(window.localStorage["pyloadCaptcha"]) == 1) {
+        return;
+     }
+     switch (parseInt(window.localStorage["pyloadCaptcha"])) {
+       case 2: startAnimate();
+               break;
+       case 3: if (!notificationCaptcha) notificationCaptcha=webkitNotifications.createHTMLNotification("notify.html");
+               notificationCaptcha.show();
+               break;
+     }
+     chrome.browserAction.setPopup({"popup":"captcha.html"});
+}
+
+function processStatus(pyloadstatus) {
+    captchaStatus(pyloadstatus['captcha']);
+    setTimeout("getStatus();",5000);
+}
+
+function getStatus() {
+    if (isconnected) {
+      $.ajax({ "url": window.localStorage["pyloadUrl"]+"/json/status",
+               "type": "POST",
+               "datatype": "json",
+               "success" : processStatus,
+               "error" : function() {disconnected(); setTimeout("getStatus();",5000);}
+      });
+    }  else setTimeout("getStatus();",5000);
+}
+
+/* Set up initial values */
+var defaults = {"pyloadPackCount":1,
+                "pyloadUrl":"http://localhost:8001",
+                "pyloadUser":"username",
+                "pyloadPass":"password",
+                "pyloadPackName":"From Chrome",
+                "pyloadName":1,
+                "pyloadSuffix":1,
+                "pyloadCaptcha":1};
+
+$.each(defaults, function(key, value) {
+  if (!window.localStorage[key]) window.localStorage[key]=value;
+});
+
+/* Message processing - currently if it's from a tab, then it's a package add request */
+chrome.extension.onRequest.addListener(
+  function(request, sender, sendResponse) {
+    if (sender.tab) {
+	addPackage(request);
+    }
+    sendResponse({}); 
+  });
+
+// Set initial state
+disconnected();
+// Try to connect}
+connectPyLoad();
+// Sets up the regular polling
+getStatus();
+</script>
+
+<div id="addbox">
+<div id="pyloadExtensionWindow" style="filter:alpha(opacity:80);opacity:0.60; background:#000; width:100%; height: 100%; position:fixed; top:0; left:0; z-index:9998;">&nbsp;</div>
+<div id="pyloadExtensionBox" class="pyloadExtensionform" style="visibility: visible; opacity: 1; zoom: 1;">
+<form id="pyloadExtensionBoxadd_form"  onSubmit="return false;"><img id="pyloadExtensionBoxLogo" /><h1>Add Package</h1><br />
+<label for="add_name">Name<span class="small">The name of the new package.</span></label>
+<input id="pyloadExtensionBoxadd_name" name="add_name" type="text" size="20" />
+
+<label for="add_links">Links<span class="small">Links to add here</span></label>
+<textarea rows="5" name="add_links" id="pyloadExtensionBoxadd_links"></textarea>
+
+<label for="add_password">Password<span class="small">Password for RAR-Archive</span></label>
+<input id="pyloadExtensionBoxadd_password" name="add_password" type="text" size="20">
+
+<label for="add_dest">Destination</label>
+<span class="cont">
+    Queue<input type="radio" name="add_dest" id="pyloadExtensionBoxadd_dest" value="1" checked="checked"></checked>
+    Collector<input type="radio" name="add_dest" id="pyloadExtensionBoxadd_dest2" value="0"></checked>
+</span>
+
+<button type="submit">Add Package</button>
+<button id="pyloadExtensionBoxadd_reset" style="margin-left:0;" type="reset">Cancel</button>
+<div class="spacer"></div>
+</form>
+</div>
+</div>

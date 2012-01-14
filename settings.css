@@ -1,0 +1,66 @@
+body {
+    background-color: #dddddd;
+    font-family:sans-serif;
+}
+
+#headingbox {
+    width: 50%;
+    background-color: #525252;
+    -webkit-border-top-left-radius: 8px;
+    -webkit-border-top-right-radius: 8px;
+    margin: 0 auto;
+    padding: 8px;
+}
+
+#headingbox h1{
+    font-size: 16pt;
+    float: right;
+    margin: 10px;
+    color: #000000;
+}
+
+
+#settingsbox {
+    width: 50%;
+    background-color: white;
+    -webkit-border-bottom-left-radius: 8px;
+    -webkit-border-bottom-right-radius: 8px;
+    margin: 0 auto;
+    padding: 8px;
+}
+
+
+
+label {
+    width: 100px;
+    display: inline-block;
+    font-size: 12pt;
+}
+
+.small {
+    display: inline;
+    font-size: 8pt;
+    padding-left: 15px;
+}
+
+
+
+input[type=text],
+input[type=password]{
+    width:300px;
+    font-size: 12pt;
+    font-weight: bold;
+    padding: 2px 0;
+}
+
+.message {
+    display: inline;
+    background-color: #c5fbb2;
+    font-size: 12pt;
+}
+.warn {
+    display: inline;
+    background-color: #ffaaaa;
+    font-size: 12pt;
+}
+

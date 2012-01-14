@@ -1,0 +1,80 @@
+<html>
+  <link rel="stylesheet" type="text/css" href="settings.css" />
+  <head>
+    <title>pyLoad extension configuration</title>
+  </head>
+<script src="jquery-1.6.1.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+  function connectResult(result) {
+     switch (result) {
+       case "fail": $("#connectResult").html("Cannot connect to server").addClass("warn");
+       break;
+       case "bad": $("#connectResult").html("Username or password is invalid").addClass("warn");
+       break;
+       case "ok": $("#connectResult").html("Connected").removeClass("warn");
+       break;
+     }
+  }
+
+  function testConnect() {
+      $("#connectResult").html("Checking...").addClass("warn");
+      chrome.extension.getBackgroundPage().connectPyLoad(connectResult);
+  }
+
+  function store(item) {
+     window.localStorage[item.name]=item.value;
+     testConnect();
+  }
+
+  function loaded() {
+      for (var item in window.localStorage) {
+        $('[name='+item+']').each(function(i) {
+            if ($(this).prop("type") == "radio") {
+               if ($(this).val() == window.localStorage[item]) {
+                  $(this).prop("checked",true);
+               }
+            } else {
+              $(this).val(window.localStorage[item]);
+            } 
+        })
+      }
+      $(":input").change(function() {store(this);});
+      testConnect();
+      
+  }
+$(document).ready(loaded);
+</script>
+
+  <body>
+  <div id="headingbox">
+    <img src="images/logo.png" /><h1>Extension settings</h1>
+  </div>
+  <div id="settingsbox">
+        <label for="pyloadUrl">pyLoad URL</label><input type="text" name="pyloadUrl" value=""/>
+        <div class="small">The full URL for the pyLoad web interface</div>
+
+        <label for="pyloadUser">Username</label><input type="text" name="pyloadUser" value=""/>
+        <div class="small">username for pyLoad web interface</div>
+                
+        <label for="pyloadPass">Password</label><input type="password" name="pyloadPass" value=""/>
+        <div class="small">password for pyLoad web interface</div>
+
+        <label for="connectResult">Status:</label><div id="connectResult" class="message"></div>
+        <hr />
+        Naming for direct packages:<br />
+        <input type="radio" name="pyloadName" value="1"><label>Domain</label>
+        <input type="radio" name="pyloadName" value="2"><label>Fixed</label>
+        <input type="text" name="pyloadPackName" value=""/> <br />
+        Append to direct package name: <br />
+        <input type="radio" name="pyloadSuffix" value="1"><label>None</label>
+        <input type="radio" name="pyloadSuffix" value="2"><label>Date &amp; Time</label>
+        <input type="radio" name="pyloadSuffix" value="3"><label>Count</label>
+        <hr />
+        Waiting captcha: <br />
+        <input type="radio" name="pyloadCaptcha" value="1"><label>None</label>
+        <input type="radio" name="pyloadCaptcha" value="2"><label>Animate Icon</label>
+        <input type="radio" name="pyloadCaptcha" value="3"><label>Notification</label>
+  </div>
+  </body>
+</html>

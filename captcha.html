@@ -1,0 +1,84 @@
+<html>
+<head>
+<title>pyLoad</title>
+</head>
+<link rel="stylesheet" type="text/css" href="captcha.css" />
+<script src="jquery-1.6.1.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+var id;
+
+function setWidth() {
+    document.body.style.width=200+$("#cap_img").outerWidth()+"px";
+}
+
+function gotCaptcha(data) {
+  if (!data.captcha) {  // Close popup
+    chrome.tabs.getSelected(null, function(tab) {
+       chrome.tabs.update(tab.id, { selected: true } )
+    });
+  } else {
+    $("#cap_img").prop("src",data.src);
+    setTimeout("setWidth();",500);
+
+    id=data.id;
+    if (!data.result_type) data.result_type = 'textual';
+    if (data.result_type == 'textual') {
+        $("#cap_img").unbind('click');
+        $('#cap_text').val("");
+        $("#cap_textual").show();
+        $("#cap_positional").hide();
+    } else {
+        $("#cap_positional").show();
+        $("#cap_textual").hide();
+        $("#cap_img").bind('click',positionClick);
+    }
+  }
+}
+
+function positionClick(e) {
+  var x = e.pageX -  $("#cap_img").offset().left;
+  var y = e.pageY -  $("#cap_img").offset().top;
+
+  $('#cap_text').val(x + "," + y);
+  replyCaptcha();
+}
+
+function replyCaptcha() {
+  chrome.extension.getBackgroundPage().replyCaptcha( {"id":id,"text":$("#cap_text").val()},gotCaptcha);
+}
+
+
+function loaded() {
+  $("#cap_form").submit(function() {replyCaptcha(); return false;});
+  chrome.extension.getBackgroundPage().getCaptcha(gotCaptcha);
+}
+
+$(document).ready(loaded);
+</script>
+<body>
+  <div id="cap_box">
+        <img src="images/logo-small.png" /><h1>Captcha reading</h1>
+
+<form id="cap_form">
+
+<label>Captcha<span class="small">The captcha.</span></label>
+<span class="cont"> <img id="cap_img" style="padding: 5px;" src=""></span>
+
+<div id="cap_positional" class="norm">
+Click on the correct captcha position.
+</div>
+
+
+<div id="cap_textual">
+<label>Text<span class="small">Input the text on the captcha.</span></label>
+<input id="cap_text" name="cap_text" type="text" size="20" />
+
+<button id="cap_submit" type="submit">Submit</button>
+</div>
+
+</form>
+
+</div>
+</body>
+</html>
