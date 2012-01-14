@@ -1,6 +1,6 @@
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
    
-   function GetSelectedUrls() {
+   function GetSelectedUrls(request) {
      
      var search = /https?:\/\/\S+|ftp:\/\/\S+/ig;
      var div1;
@@ -23,7 +23,7 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
       }
      
      var urls=[];
-     sel = window.getSelection();
+	 sel = window.getSelection();
      for(var i = 0; i < sel.rangeCount; i++) {
        asel = sel.getRangeAt(i).cloneContents();
        var links = asel.querySelectorAll("a");
@@ -58,9 +58,12 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
                                 });
       document.body.removeChild(div1);
     }
-    
-    var urls=GetSelectedUrls();
-
+    var urls = [];
+	if (request.type == "currurl") {
+	urls.push(document.URL);
+	} else {
+	urls=GetSelectedUrls(request);
+	}
     
     if (urls.length > 0) {
       if (request.type == "new") {

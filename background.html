@@ -7,6 +7,7 @@ var notificationCaptcha;
 var captchaData = {"captcha":false};
 var directMenu;
 var packageMenu;
+var currurl;
 var animate=-99;
 
 function connected() {
@@ -14,6 +15,7 @@ function connected() {
    chrome.contextMenus.removeAll();
    packageMenu = chrome.contextMenus.create({"contexts":["selection"],"title":"New package","onclick": remotePopup});
    directMenu = chrome.contextMenus.create({"contexts":["selection"],"title":"Direct package","onclick": remotePopup});
+   currurl = chrome.contextMenus.create({"contexts":["all"],"title":"current url","onclick": remotePopup});
    chrome.browserAction.setIcon({"path":"images/logo19.png"});
    chrome.browserAction.setTitle({"title":"pyLoad - Connected"});
    chrome.browserAction.onClicked.removeListener(connectPyLoad2);
@@ -101,7 +103,23 @@ function remotePopup(info, tab) {
                     window.localStorage["pyloadPackCount"] = parseInt(window.localStorage["pyloadPackCount"])+1;
                     break;
       }
-
+  }	else if (info.menuItemId == currurl) {
+		type="currurl";
+		switch (parseInt(window.localStorage["pyloadName"])) {
+          case 1:   var matches=info.pageUrl.match(/.*?:\/\/(.*?)\//);
+                    name=matches[0];
+                    break;
+          case 2:   name=window.localStorage["pyloadPackName"];
+                    break;
+      }
+      switch (parseInt(window.localStorage["pyloadSuffix"])) {
+          case 1:   break;
+          case 2:   name = name + " " +getDate();
+                    break;
+          case 3:   name = name + " " +window.localStorage["pyloadPackCount"];
+                    window.localStorage["pyloadPackCount"] = parseInt(window.localStorage["pyloadPackCount"])+1;
+                    break;
+	  }
   } else {
       type = "new";
   }
