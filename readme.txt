@@ -1,1 +1,1 @@
-well, copy and implementation of a chrome pyload plugin from the existing but abandonned one.
+well, copy and implementation of a chrome pyload plugin from the existing but abandoned one.
